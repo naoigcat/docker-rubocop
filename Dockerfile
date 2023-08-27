@@ -15,7 +15,7 @@ RUN { \
     gem install racc -v 1.5.2 && \
     gem install rainbow -v 3.0.0 && \
     gem install parallel -v 1.13.0 && \
-    gem install rubocop -v 0.55.0 && \
+    gem install rubocop -v 0.56.0 && \
     apt-get remove --auto-remove -y gcc make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

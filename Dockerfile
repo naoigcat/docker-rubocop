@@ -11,10 +11,12 @@ RUN { \
         gcc \
         make \
     && \
+    gem install parallel -v 1.19.2 && \
     gem install racc -v 1.5.2 && \
     gem install rainbow -v 3.0.0 && \
-    gem install parallel -v 1.19.2 && \
-    gem install rubocop -v 0.64.0 && \
+    gem install stringio -v 0.0.2 && \
+    gem install psych -v 3.1.0 && \
+    gem install rubocop -v 0.65.0 && \
     apt-get remove --auto-remove -y gcc make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

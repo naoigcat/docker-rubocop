@@ -9,7 +9,7 @@ RUN apt-get update && \
     gem install parallel -v 1.20.1 && \
     gem install racc -v 1.5.2 && \
     gem install rexml -v 3.2.5 && \
-    gem install rubocop -v 0.82.0 && \
+    gem install rubocop -v 0.83.0 && \
     apt-get remove --auto-remove -y gcc make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

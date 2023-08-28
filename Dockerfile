@@ -10,7 +10,7 @@ RUN apt-get update && \
     gem install racc -v 1.5.2 && \
     gem install rexml -v 3.2.5 && \
     gem install rubocop-ast -v 0.6.0 && \
-    gem install rubocop -v 0.84.0 && \
+    gem install rubocop -v 0.85.1 && \
     apt-get remove --auto-remove -y gcc make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

@@ -7,7 +7,7 @@ RUN apt-get update && \
         make \
     && \
     gem install rubocop-ast -v 1.17.0 && \
-    gem install rubocop -v 1.25.1 && \
+    gem install rubocop -v 1.26.1 && \
     apt-get remove --auto-remove -y gcc make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

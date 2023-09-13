@@ -49,7 +49,15 @@ jobs:
             PREV_VERSION=$(echo main $RUBY_VERSIONS | tr ' ' $'\n' | sed -n $(echo $RUBY_VERSIONS | tr ' ' $'\n' | sed -n /$RUBY_VERSION/=)p | sed -e 's/^[0-9]/ruby&/')
             echo git merge --no-ff --no-commit $PREV_VERSION | tee /dev/stderr | source /dev/stdin
             echo git checkout HEAD -- Dockerfile | tee /dev/stderr | source /dev/stdin
-            echo test $PREV_VERSION != "main" -o $(git diff --numstat HEAD | wc -l) -eq 0 \|\| git commit -m \"Merge branch 'main' to $(git rev-parse --abbrev-ref @)\" | tee /dev/stderr | source /dev/stdin
+            if test $PREV_VERSION == "main"
+            then
+              if test $(git diff --numstat HEAD | wc -l) -gt 0
+              then
+                echo git commit -m \"Merge branch 'main' to $(git rev-parse --abbrev-ref @)\" | tee /dev/stderr | source /dev/stdin
+              else
+                echo git merge --abort | tee /dev/stderr | source /dev/stdin
+              fi
+            fi
             RUBY_TAG=$(
               (
                 url="https://registry.hub.docker.com/v2/repositories/library/ruby/tags/?page_size=100"

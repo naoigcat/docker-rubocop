@@ -57,6 +57,7 @@ jobs:
               else
                 echo git merge --abort | tee /dev/stderr | source /dev/stdin
               fi
+              echo git checkout main -- Dockerfile | tee /dev/stderr | source /dev/stdin
             fi
             RUBY_TAG=$(
               (

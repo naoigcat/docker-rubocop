@@ -1,0 +1,73 @@
+name: Bump Version
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ssh-key: ${{ secrets.SSH_KEY }}
+      -
+        name: Get version
+        run: |
+          echo sudo apt-get update | tee /dev/stderr | source /dev/stdin
+          echo sudo apt-get install -y moreutils | tee /dev/stderr | source /dev/stdin
+          echo curl -fsSLO https://api.github.com/repos/mikefarah/yq/releases | tee /dev/stderr | source /dev/stdin
+          echo curl -fsSL -o /usr/local/bin/yq $(jq -r ".[0].assets[] | select(.name == \"yq_linux_$(dpkg --get-selections | grep libsystemd0 | awk "{print \$1}" | awk -F ":" "{print \$2}")\") | .browser_download_url" releases) | tee /dev/stderr | source /dev/stdin
+          echo chmod +x /usr/local/bin/yq | tee /dev/stderr | source /dev/stdin
+          echo curl -fsSLO https://rubygems.org/api/v1/versions/rubocop.json | tee /dev/stderr | source /dev/stdin
+          echo curl -fsSLO https://raw.githubusercontent.com/ruby/www.ruby-lang.org/master/_data/branches.yml | tee /dev/stderr | source /dev/stdin
+          echo git fetch --tags | tee /dev/stderr | source /dev/stdin
+          export CURRENT_VERSION=$(echo git tag --sort -authordate \| head -n1 \| awk -F \"-\" \"{print \\\$1}\" | tee /dev/stderr | source /dev/stdin)
+          export CURRENT_CREATED=$(echo jq -r \".[] \| select\(.number == \\\"$CURRENT_VERSION\\\"\) \| .created_at\" rubocop.json | tee /dev/stderr | source /dev/stdin)
+          test -z "$(jq -r ". | sort_by(.created_at) | .[] | select(.created_at > \"$CURRENT_CREATED\")" rubocop.json)" && exit 0 || :
+          echo jq -r \". \| sort_by\(.created_at\) \| .[] \| select\(.created_at \> \\\"$CURRENT_CREATED\\\"\)\" rubocop.json \| jq -rs \".[0]\" \| sponge rubocop.json | tee /dev/stderr | source /dev/stdin
+          echo RUBY_VERSIONS=$(echo yq -r \"reverse \| .[] \| select\(.date \< \\\"$(jq -r ".created_at" rubocop.json | awk -F "T" "{print \$1}")\\\"\) \| .name\" branches.yml \| sed -n \"/^$(jq -r ".ruby_version" rubocop.json | sed -e "s/[><= ]//g" | awk -F "." "{print \$1\".\"\$2}")\\\$/,\\\$p\" | tee /dev/stderr | source /dev/stdin) | tee /dev/stderr >> $GITHUB_ENV
+          echo GEM_VERSION=$(jq -r ".number" rubocop.json) | tee /dev/stderr >> $GITHUB_ENV
+      -
+        name: Bump
+        run: |
+          test -z "$GEM_VERSION" && exit 0 || :
+          echo git config --global user.name \"github-actions[bot]\" | tee /dev/stderr | source /dev/stdin
+          echo git config --global user.email \"github-actions[bot]@users.noreply.github.com\" | tee /dev/stderr | source /dev/stdin
+          echo git fetch --unshallow | tee /dev/stderr | source /dev/stdin
+          for RUBY_VERSION in $RUBY_VERSIONS
+          do
+            if test $(git tag --sort -authordate | grep -c "ruby${RUBY_VERSION}$") -gt 0
+            then
+              echo git checkout -B ruby${RUBY_VERSION} $(git tag --sort -authordate | grep "ruby${RUBY_VERSION}$" | head -n1) | tee /dev/stderr | source /dev/stdin
+            else
+              echo git checkout -b ruby${RUBY_VERSION} | tee /dev/stderr | source /dev/stdin
+            fi
+            PREV_VERSION=$(echo main $RUBY_VERSIONS | tr ' ' $'\n' | sed -n $(echo $RUBY_VERSIONS | tr ' ' $'\n' | sed -n /$RUBY_VERSION/=)p | sed -e 's/^[0-9]/ruby&/')
+            echo git merge --no-ff --no-commit $PREV_VERSION | tee /dev/stderr | source /dev/stdin
+            echo git checkout HEAD -- Dockerfile | tee /dev/stderr | source /dev/stdin
+            echo test $PREV_VERSION != "main" -o $(git diff --numstat HEAD | wc -l) -eq 0 \|\| git commit -m \"Merge branch 'main' to $(git rev-parse --abbrev-ref @)\" | tee /dev/stderr | source /dev/stdin
+            RUBY_TAG=$(
+              (
+                url="https://registry.hub.docker.com/v2/repositories/library/ruby/tags/?page_size=100"
+                while test -n "${url}"
+                do
+                  content=$(curl -s "${url}")
+                  url=$(jq -r '.next // empty' <<< "${content}")
+                  echo "${content}"
+                done
+              ) | jq -rs "[.[].results[] | select(.name | endswith(\"-slim\")) | select(.name | startswith(\"${RUBY_VERSION}.\"))][0].name"
+            )
+            echo sed -i -e \"s/ruby:.*/ruby:${RUBY_TAG}/\" Dockerfile | tee /dev/stderr | source /dev/stdin
+            echo sed -i -e \"s/rubocop -v [0-9.]\*/rubocop -v ${GEM_VERSION}/\" Dockerfile | tee /dev/stderr | source /dev/stdin
+            echo git commit -am \"Bump rubocop to ${GEM_VERSION}\" | tee /dev/stderr | source /dev/stdin
+            echo git tag ${GEM_VERSION}-ruby${RUBY_VERSION} | tee /dev/stderr | source /dev/stdin
+            echo git push origin $(git describe --tags) | tee /dev/stderr | source /dev/stdin
+            sleep 300
+          done
+          echo git checkout main | tee /dev/stderr | source /dev/stdin
+          echo git merge --ff ruby$(echo $RUBY_VERSIONS | rev | cut -d\  -f1 | rev) | tee /dev/stderr | source /dev/stdin
+          echo git push origin main | tee /dev/stderr | source /dev/stdin

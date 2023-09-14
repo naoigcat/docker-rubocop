@@ -1,4 +1,4 @@
-FROM ruby:3.0.6-slim
+FROM ruby:3.1.4-slim
 LABEL maintainer="naoigcat <17925623+naoigcat@users.noreply.github.com>"
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && \

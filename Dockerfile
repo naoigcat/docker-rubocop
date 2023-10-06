@@ -6,7 +6,7 @@ RUN apt-get update && \
         gcc \
         make \
     && \
-    gem install rubocop -v 1.52.1 && \
+    gem install rubocop -v 1.53.0 && \
     apt-get remove --auto-remove -y gcc make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

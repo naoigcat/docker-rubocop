@@ -47,7 +47,7 @@ jobs:
               echo git checkout -b ruby${RUBY_VERSION} | tee /dev/stderr | source /dev/stdin
             fi
             PREV_VERSION=$(echo main $RUBY_VERSIONS | tr ' ' $'\n' | sed -n $(echo $RUBY_VERSIONS | tr ' ' $'\n' | sed -n /$RUBY_VERSION/=)p | sed -e 's/^[0-9]/ruby&/')
-            echo git merge --no-ff --no-commit $PREV_VERSION | tee /dev/stderr | source /dev/stdin
+            echo git merge --no-ff --no-commit -s recursive -X theirs $PREV_VERSION | tee /dev/stderr | source /dev/stdin
             echo git checkout HEAD -- Dockerfile | tee /dev/stderr | source /dev/stdin
             if test $PREV_VERSION == "main"
             then

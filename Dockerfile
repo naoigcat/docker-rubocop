@@ -1,4 +1,4 @@
-FROM ruby:3.2.2-slim
+FROM ruby:3.2.3-slim
 LABEL maintainer="naoigcat <17925623+naoigcat@users.noreply.github.com>"
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && \
@@ -6,7 +6,7 @@ RUN apt-get update && \
         gcc \
         make \
     && \
-    gem install rubocop -v 1.60.1 && \
+    gem install rubocop -v 1.60.2 && \
     apt-get remove --auto-remove -y gcc make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

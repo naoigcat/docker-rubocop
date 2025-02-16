@@ -7,7 +7,7 @@ on:
 
 jobs:
   bump:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       -
         name: Checkout
@@ -48,7 +48,6 @@ jobs:
             fi
             PREV_VERSION=$(echo main $RUBY_VERSIONS | tr ' ' $'\n' | sed -n $(echo $RUBY_VERSIONS | tr ' ' $'\n' | sed -n /$RUBY_VERSION/=)p | sed -e 's/^[0-9]/ruby&/')
             echo git merge --no-ff --no-commit -s recursive -X theirs $PREV_VERSION | tee /dev/stderr | source /dev/stdin
-            echo git checkout HEAD -- Dockerfile | tee /dev/stderr | source /dev/stdin
             if test $PREV_VERSION == "main"
             then
               if test $(git diff --numstat HEAD | wc -l) -gt 0
@@ -57,19 +56,33 @@ jobs:
               else
                 echo git merge --abort | tee /dev/stderr | source /dev/stdin
               fi
-              echo git checkout main -- Dockerfile | tee /dev/stderr | source /dev/stdin
             fi
-            RUBY_TAG=$(
-              (
-                url="https://registry.hub.docker.com/v2/repositories/library/ruby/tags/?page_size=100"
-                while test -n "${url}"
-                do
-                  content=$(curl -s "${url}")
-                  url=$(jq -r '.next // empty' <<< "${content}")
-                  echo "${content}"
-                done
-              ) | jq -rs "[.[].results[] | select(.name | endswith(\"-slim\")) | select(.name | startswith(\"${RUBY_VERSION}.\"))][0].name"
-            )
+            if [[ "${RUBY_VERSION}" =~ ^2.7|^3.0 ]]
+            then
+              RUBY_TAG=$(
+                (
+                  url="https://registry.hub.docker.com/v2/repositories/library/ruby/tags/?page_size=100"
+                  while test -n "${url}"
+                  do
+                    content=$(curl -s "${url}")
+                    url=$(jq -r '.next // empty' <<< "${content}")
+                    echo "${content}"
+                  done
+                ) | jq -rs "[.[].results[] | select(.name | endswith(\"-slim-buster\")) | select(.name | startswith(\"${RUBY_VERSION}.\"))][0].name"
+              )
+            else
+              RUBY_TAG=$(
+                (
+                  url="https://registry.hub.docker.com/v2/repositories/library/ruby/tags/?page_size=100"
+                  while test -n "${url}"
+                  do
+                    content=$(curl -s "${url}")
+                    url=$(jq -r '.next // empty' <<< "${content}")
+                    echo "${content}"
+                  done
+                ) | jq -rs "[.[].results[] | select(.name | endswith(\"-slim\")) | select(.name | startswith(\"${RUBY_VERSION}.\"))][0].name"
+              )
+            fi
             echo sed -i -e \"s/ruby:.*/ruby:${RUBY_TAG}/\" Dockerfile | tee /dev/stderr | source /dev/stdin
             echo sed -i -e \"s/rubocop -v [0-9.]\*/rubocop -v ${GEM_VERSION}/\" Dockerfile | tee /dev/stderr | source /dev/stdin
             echo git commit -am \"Bump rubocop to ${GEM_VERSION}\" | tee /dev/stderr | source /dev/stdin

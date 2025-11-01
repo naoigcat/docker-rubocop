@@ -1,4 +1,4 @@
-FROM ruby:2.7.8-slim-buster
+FROM ruby:3.4.7-slim
 LABEL maintainer="naoigcat <17925623+naoigcat@users.noreply.github.com>"
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \

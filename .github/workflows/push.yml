@@ -19,6 +19,14 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       -
+        name: Prepare CA certificates
+        run: |
+          mkdir -p ca-certs
+          if [ -d /usr/local/share/ca-certificates ]; then
+            cp /usr/local/share/ca-certificates/*.crt ca-certs/ 2>/dev/null || true
+          fi
+          ls -la ca-certs/ || true
+      -
         name: Generate meta data
         id: meta
         uses: docker/metadata-action@v4

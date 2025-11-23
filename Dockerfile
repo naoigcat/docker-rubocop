@@ -1,7 +1,8 @@
 FROM ruby:3.4.7-slim
 LABEL maintainer="naoigcat <17925623+naoigcat@users.noreply.github.com>"
 ENV DEBIAN_FRONTEND=noninteractive
-# Copy local CA certificates for development environments with SSL proxies
+# Copy local CA certificates for development/CI environments with SSL proxies.
+# For production, ensure ca-certs/ only contains .gitkeep and README.md
 COPY ca-certs/ /usr/local/share/ca-certificates/
 RUN apt-get update && \
     apt-get install -y \

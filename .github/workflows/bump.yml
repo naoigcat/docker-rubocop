@@ -7,7 +7,7 @@ on:
 
 jobs:
   bump:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       -
         name: Checkout
@@ -48,7 +48,6 @@ jobs:
             fi
             PREV_VERSION=$(echo main $RUBY_VERSIONS | tr ' ' $'\n' | sed -n $(echo $RUBY_VERSIONS | tr ' ' $'\n' | sed -n /$RUBY_VERSION/=)p | sed -e 's/^[0-9]/ruby&/')
             echo git merge --no-ff --no-commit -s recursive -X theirs $PREV_VERSION | tee /dev/stderr | source /dev/stdin
-            echo git checkout HEAD -- Dockerfile | tee /dev/stderr | source /dev/stdin
             if test $PREV_VERSION == "main"
             then
               if test $(git diff --numstat HEAD | wc -l) -gt 0
@@ -57,7 +56,6 @@ jobs:
               else
                 echo git merge --abort | tee /dev/stderr | source /dev/stdin
               fi
-              echo git checkout main -- Dockerfile | tee /dev/stderr | source /dev/stdin
             fi
             RUBY_TAG=$(
               (

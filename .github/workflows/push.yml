@@ -22,10 +22,14 @@ jobs:
         name: Prepare CA certificates
         run: |
           mkdir -p ca-certs
-          if [ -d /usr/local/share/ca-certificates ]; then
-            cp /usr/local/share/ca-certificates/*.crt ca-certs/ 2>/dev/null || true
-          fi
-          ls -la ca-certs/ || true
+          # Copy CA certificates from common locations
+          for cert_dir in /usr/local/share/ca-certificates /etc/ssl/certs; do
+            if [ -d "$cert_dir" ]; then
+              find "$cert_dir" -name '*.crt' -exec cp {} ca-certs/ \; 2>/dev/null || true
+            fi
+          done
+          echo "CA certificates in ca-certs directory:"
+          ls -la ca-certs/ || echo "No certificates found"
       -
         name: Generate meta data
         id: meta

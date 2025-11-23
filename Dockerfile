@@ -1,9 +1,11 @@
 FROM ruby:3.4.7-slim
 LABEL maintainer="naoigcat <17925623+naoigcat@users.noreply.github.com>"
 ENV DEBIAN_FRONTEND=noninteractive
-# Copy local CA certificates for development/CI environments with SSL proxies.
-# For production, ensure ca-certs/ only contains .gitkeep and README.md
-COPY ca-certs/ /usr/local/share/ca-certificates/
+# Copy CA certificates from ca-certs directory if it exists (optional, for SSL proxy environments).
+# To add custom certificates, create ca-certs directory before building:
+#   mkdir -p ca-certs && cp /usr/local/share/ca-certificates/*.crt ca-certs/
+# The ca-certs directory is gitignored and created locally as needed.
+COPY --chown=root:root ca-cert[s]/ /usr/local/share/ca-certificates/
 RUN apt-get update && \
     apt-get install -y \
         ca-certificates \

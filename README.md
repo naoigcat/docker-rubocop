@@ -18,3 +18,15 @@ docker pull naoigcat/rubocop
 ```sh
 docker run --rm -v ${PWD}:/app naoigcat/rubocop
 ```
+
+## Building with SSL Proxy Support
+
+If you're building in an environment with SSL interception (e.g., corporate proxy, mkcert), create a `ca-certs` directory with your CA certificates before building:
+
+```sh
+mkdir -p ca-certs
+cp /usr/local/share/ca-certificates/*.crt ca-certs/
+docker build -t naoigcat/rubocop .
+```
+
+The `ca-certs` directory is gitignored and created locally as needed.

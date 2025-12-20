@@ -1,4 +1,4 @@
-# Docker GitHub Pages
+# Docker RuboCop
 
 [![Docker Builds](https://github.com/naoigcat/docker-rubocop/actions/workflows/push.yml/badge.svg)](https://github.com/naoigcat/docker-rubocop/actions/workflows/push.yml)
 

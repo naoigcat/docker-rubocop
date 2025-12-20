@@ -5,6 +5,9 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: read
+
 jobs:
   push:
     runs-on: ubuntu-22.04
@@ -47,4 +50,4 @@ jobs:
         name: Pull and Test
         run: |
           echo $'# frozen_string_literal: true\nputs "Hello world!"' > hello.rb
-          docker run --rm -v ${PWD}:/app naoigcat/rubocop:${{ github.ref_name }} -a
+          docker run --rm -v ${PWD}:/app ${{ secrets.DOCKERHUB_USERNAME }}/rubocop:${{ github.ref_name }} -a

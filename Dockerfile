@@ -4,10 +4,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         gcc \
+        libc6-dev \
         make \
     && \
     gem install rubocop -v 1.81.1 --no-document && \
-    apt-get remove --auto-remove -y gcc make && \
+    apt-get remove --auto-remove -y gcc libc6-dev make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /app

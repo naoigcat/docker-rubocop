@@ -1,4 +1,4 @@
-# Docker GitHub Pages
+# Docker RuboCop
 
 [![Docker Builds](https://github.com/naoigcat/docker-rubocop/actions/workflows/push.yml/badge.svg)](https://github.com/naoigcat/docker-rubocop/actions/workflows/push.yml)
 
@@ -16,5 +16,18 @@ docker pull naoigcat/rubocop
 ## Usage
 
 ```sh
-docker run --rm -v ${PWD}:/app naoigcat/rubocop
+docker run --rm -v "$PWD":/app naoigcat/rubocop
+```
+
+### Tags
+
+This repository publishes images on tag push. Common tag formats are:
+
+-   `${RUBOCOP_VERSION}-ruby${RUBY_VERSION}` (most reproducible)
+-   `ruby${RUBY_VERSION}`
+
+Example:
+
+```sh
+docker run --rm -v "$PWD":/app naoigcat/rubocop:1.81.0-ruby3.4
 ```

@@ -1,4 +1,4 @@
-FROM ruby:3.4.8-slim
+FROM ruby:2.7.8-slim
 LABEL maintainer="naoigcat <17925623+naoigcat@users.noreply.github.com>"
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
@@ -7,7 +7,7 @@ RUN apt-get update && \
         libc6-dev \
         make \
     && \
-    gem install rubocop -v 1.82.1 --no-document && \
+    gem install rubocop -v 1.84.0 --no-document && \
     apt-get remove --auto-remove -y gcc libc6-dev make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

@@ -7,7 +7,7 @@ RUN apt-get update && \
         libc6-dev \
         make \
     && \
-    gem install rubocop -v 1.84.1 --no-document && \
+    gem install rubocop -v 1.84.2 --no-document && \
     apt-get remove --auto-remove -y gcc libc6-dev make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

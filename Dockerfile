@@ -1,4 +1,4 @@
-FROM ruby:4.0.1-slim
+FROM ruby:2.7.8-slim
 LABEL maintainer="naoigcat <17925623+naoigcat@users.noreply.github.com>"
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
@@ -11,7 +11,7 @@ RUN apt-get update && \
     gem install public_suffix -v 5.1.1 --no-document; \
     gem install json-schema -v 5.2.2 --no-document; \
     fi && \
-    gem install rubocop -v 1.84.2 --no-document && \
+    gem install rubocop -v 1.85.0 --no-document && \
     apt-get remove --auto-remove -y gcc libc6-dev make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

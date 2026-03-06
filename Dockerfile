@@ -11,7 +11,7 @@ RUN apt-get update && \
     gem install public_suffix -v 5.1.1 --no-document; \
     gem install json-schema -v 5.2.2 --no-document; \
     fi && \
-    gem install rubocop -v 1.85.0 --no-document && \
+    gem install rubocop -v 1.85.1 --no-document && \
     apt-get remove --auto-remove -y gcc libc6-dev make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

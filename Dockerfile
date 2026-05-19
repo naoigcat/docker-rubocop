@@ -1,4 +1,4 @@
-FROM ruby:2.7.8-slim
+FROM ruby:4.0.2-slim
 LABEL maintainer="naoigcat <17925623+naoigcat@users.noreply.github.com>"
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
@@ -10,6 +10,9 @@ RUN apt-get update && \
     if ruby -e "exit(Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.0') ? 0 : 1)"; then \
     gem install public_suffix -v 5.1.1 --no-document; \
     gem install json-schema -v 5.2.2 --no-document; \
+    fi && \
+    if ruby -e "exit(Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3') ? 0 : 1)"; then \
+    gem install parallel -v 1.28.0 --no-document; \
     fi && \
     gem install rubocop -v 1.86.1 --no-document && \
     apt-get remove --auto-remove -y gcc libc6-dev make && \

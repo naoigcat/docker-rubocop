@@ -14,7 +14,7 @@ RUN apt-get update && \
     if ruby -e "exit(Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3') ? 0 : 1)"; then \
     gem install parallel -v 1.28.0 --no-document; \
     fi && \
-    gem install rubocop -v 1.87.0 --no-document && \
+    gem install rubocop -v 1.88.0 --no-document && \
     apt-get remove --auto-remove -y gcc libc6-dev make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

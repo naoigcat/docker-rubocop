@@ -1,7 +1,16 @@
-FROM ruby:4.0.6-slim
+FROM ruby:4.0.7-slim
 LABEL maintainer="naoigcat <17925623+naoigcat@users.noreply.github.com>"
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && \
+# Ruby 2.7 and 3.0 images are based on Debian Bullseye.  Use the snapshots
+# bundled in those images because the live Bullseye security repository has
+# expired.
+RUN if ruby -e "exit(Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.1') ? 0 : 1)"; then \
+    sed -i \
+        -e 's|^# deb http://snapshot.debian.org|deb http://snapshot.debian.org|' \
+        -e 's|^deb http://deb.debian.org|# deb http://deb.debian.org|' \
+        /etc/apt/sources.list; \
+    fi && \
+    apt-get -o Acquire::Check-Valid-Until=false update && \
     apt-get install -y --no-install-recommends \
         gcc \
         libc6-dev \
@@ -14,7 +23,7 @@ RUN apt-get update && \
     if ruby -e "exit(Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3') ? 0 : 1)"; then \
     gem install parallel -v 1.28.0 --no-document; \
     fi && \
-    gem install rubocop -v 1.89.0 --no-document && \
+    gem install rubocop -v 1.90.0 --no-document && \
     apt-get remove --auto-remove -y gcc libc6-dev make && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

@@ -22,8 +22,7 @@ jobs:
         run: |
           echo sudo apt-get update | tee /dev/stderr | source /dev/stdin
           echo sudo apt-get install -y moreutils | tee /dev/stderr | source /dev/stdin
-          echo curl -fsSLO https://api.github.com/repos/mikefarah/yq/releases | tee /dev/stderr | source /dev/stdin
-          echo curl -fsSL -o /usr/local/bin/yq $(jq -r ".[0].assets[] | select(.name == \"yq_linux_$(dpkg --get-selections | grep libsystemd0 | awk "{print \$1}" | awk -F ":" "{print \$2}")\") | .browser_download_url" releases) | tee /dev/stderr | source /dev/stdin
+          echo curl -fsSL --retry 3 --retry-delay 5 --retry-max-time 60 -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$(dpkg --print-architecture) | tee /dev/stderr | source /dev/stdin
           echo chmod +x /usr/local/bin/yq | tee /dev/stderr | source /dev/stdin
           echo curl -fsSLO https://rubygems.org/api/v1/versions/rubocop.json | tee /dev/stderr | source /dev/stdin
           echo curl -fsSLO https://raw.githubusercontent.com/ruby/www.ruby-lang.org/master/_data/branches.yml | tee /dev/stderr | source /dev/stdin
@@ -41,6 +40,25 @@ jobs:
           echo git config --global user.name \"github-actions[bot]\" | tee /dev/stderr | source /dev/stdin
           echo git config --global user.email \"github-actions[bot]@users.noreply.github.com\" | tee /dev/stderr | source /dev/stdin
           echo git fetch --unshallow | tee /dev/stderr | source /dev/stdin
+          # Fetch the public tag list through the registry API once with a bearer token to avoid Docker Hub's anonymous API rate limit.
+          RUBY_TAGS=$(
+            token=$(curl -fsSL --retry 3 --retry-delay 5 --retry-max-time 60 'https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/ruby:pull' | jq -er '.token')
+            url='https://registry-1.docker.io/v2/library/ruby/tags/list?n=1000'
+            headers="${RUNNER_TEMP}/ruby-tags.headers"
+            while test -n "$url"
+            do
+              content=$(curl -fsSL --retry 3 --retry-delay 5 --retry-max-time 60 -D "$headers" -H "Authorization: Bearer ${token}" "$url")
+              jq -er 'if (.tags | type) == "array" then length else error("Docker Registry response has no tag list") end' <<< "$content" > /dev/null
+              jq -r '.tags[]' <<< "$content"
+              next_path=$(sed -n 's/^[Ll]ink: <\([^>]*\)>.*rel="next".*$/\1/p' "$headers")
+              if test -n "$next_path"
+              then
+                url="https://registry-1.docker.io${next_path}"
+              else
+                url=
+              fi
+            done
+          )
           for RUBY_VERSION in $RUBY_VERSIONS
           do
             if test $(git tag --sort -authordate | grep -c "ruby${RUBY_VERSION}$") -gt 0
@@ -61,15 +79,14 @@ jobs:
               fi
             fi
             RUBY_TAG=$(
-              (
-                url="https://registry.hub.docker.com/v2/repositories/library/ruby/tags/?page_size=100"
-                while test -n "${url}"
-                do
-                  content=$(curl -s "${url}")
-                  url=$(jq -r '.next // empty' <<< "${content}")
-                  echo "${content}"
-                done
-              ) | jq -rs "[.[].results[] | select(.name | endswith(\"-slim\")) | select(.name | startswith(\"${RUBY_VERSION}.\"))][0].name"
+              jq -er -R -s --arg ruby_version "${RUBY_VERSION}" '
+                split("\n")
+                | map(select(length > 0))
+                | map(select(startswith($ruby_version + ".")))
+                | map(select(test("^[0-9]+\\.[0-9]+\\.[0-9]+-slim$")))
+                | sort_by(split("-")[0] | split(".") | map(tonumber))
+                | .[-1] // error("No stable slim Ruby tag found for " + $ruby_version)
+              ' <<< "${RUBY_TAGS}"
             )
             echo sed -i -e \"s/ruby:.*/ruby:${RUBY_TAG}/\" Dockerfile | tee /dev/stderr | source /dev/stdin
             echo sed -i -e \"s/rubocop -v [0-9.]\*/rubocop -v ${GEM_VERSION}/\" Dockerfile | tee /dev/stderr | source /dev/stdin

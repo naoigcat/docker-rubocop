@@ -27,7 +27,7 @@ jobs:
           echo curl -fsSLO https://rubygems.org/api/v1/versions/rubocop.json | tee /dev/stderr | source /dev/stdin
           echo curl -fsSLO https://raw.githubusercontent.com/ruby/www.ruby-lang.org/master/_data/branches.yml | tee /dev/stderr | source /dev/stdin
           echo git fetch --tags | tee /dev/stderr | source /dev/stdin
-          export CURRENT_VERSION=$(echo git tag --sort -authordate \| head -n1 \| awk -F \"-\" \"{print \\\$1}\" | tee /dev/stderr | source /dev/stdin)
+          export CURRENT_VERSION=$(sed -n 's/.*gem install rubocop -v \([0-9.]*\).*/\1/p' Dockerfile)
           export CURRENT_CREATED=$(echo jq -r \".[] \| select\(.number == \\\"$CURRENT_VERSION\\\"\) \| .created_at\" rubocop.json | tee /dev/stderr | source /dev/stdin)
           test -z "$(jq -r ". | sort_by(.created_at) | .[] | select(.created_at > \"$CURRENT_CREATED\")" rubocop.json)" && exit 0 || :
           echo jq -r \". \| sort_by\(.created_at\) \| .[] \| select\(.created_at \> \\\"$CURRENT_CREATED\\\"\)\" rubocop.json \| jq -rs \".[0]\" \| sponge rubocop.json | tee /dev/stderr | source /dev/stdin
@@ -61,6 +61,11 @@ jobs:
           )
           for RUBY_VERSION in $RUBY_VERSIONS
           do
+            if git show-ref --verify --quiet "refs/tags/${GEM_VERSION}-ruby${RUBY_VERSION}"
+            then
+              git checkout -B "ruby${RUBY_VERSION}" "${GEM_VERSION}-ruby${RUBY_VERSION}"
+              continue
+            fi
             if test $(git tag --sort -authordate | grep -c "ruby${RUBY_VERSION}$") -gt 0
             then
               echo git checkout -B ruby${RUBY_VERSION} $(git tag --sort -authordate | grep "ruby${RUBY_VERSION}$" | head -n1) | tee /dev/stderr | source /dev/stdin

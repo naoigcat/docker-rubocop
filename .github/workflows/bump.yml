@@ -37,6 +37,7 @@ jobs:
         name: Bump
         run: |
           test -z "$GEM_VERSION" && exit 0 || :
+          test -n "$RUBY_VERSIONS"
           echo git config --global user.name \"github-actions[bot]\" | tee /dev/stderr | source /dev/stdin
           echo git config --global user.email \"github-actions[bot]@users.noreply.github.com\" | tee /dev/stderr | source /dev/stdin
           echo git fetch --unshallow | tee /dev/stderr | source /dev/stdin
@@ -100,6 +101,12 @@ jobs:
             echo git push origin $(git describe --tags) | tee /dev/stderr | source /dev/stdin
             sleep 300
           done
+          # Shared image tags must come from the newest Ruby variant.
+          if ! git show-ref --verify --quiet "refs/tags/${GEM_VERSION}"
+          then
+            git tag "$GEM_VERSION"
+          fi
+          git push origin "$GEM_VERSION"
           echo git checkout main | tee /dev/stderr | source /dev/stdin
           echo git merge --ff ruby$(echo $RUBY_VERSIONS | rev | cut -d\  -f1 | rev) | tee /dev/stderr | source /dev/stdin
           echo git push origin main | tee /dev/stderr | source /dev/stdin

@@ -31,3 +31,16 @@ Example:
 ```sh
 docker run --rm -v "$PWD":/app naoigcat/rubocop:1.81.0-ruby3.4
 ```
+
+The version bump workflow also repairs a missing shared tag for the current
+release, using the Ruby variant in the default branch's Dockerfile.
+
+To retry a failed Docker Hub publication, run **Push to Docker Hub** on the
+default branch and enter the existing Git tag, or use:
+
+```sh
+gh workflow run push.yml -f tag=1.92.1
+```
+
+Use a `-ruby` tag to retry only that variant. A shared version tag also updates
+`latest`, so select the current release when repairing `latest`.

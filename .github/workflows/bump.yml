@@ -27,21 +27,35 @@ jobs:
           echo curl -fsSLO https://rubygems.org/api/v1/versions/rubocop.json | tee /dev/stderr | source /dev/stdin
           echo curl -fsSLO https://raw.githubusercontent.com/ruby/www.ruby-lang.org/master/_data/branches.yml | tee /dev/stderr | source /dev/stdin
           echo git fetch --tags | tee /dev/stderr | source /dev/stdin
-          export CURRENT_VERSION=$(echo git tag --sort -authordate \| head -n1 \| awk -F \"-\" \"{print \\\$1}\" | tee /dev/stderr | source /dev/stdin)
+          export CURRENT_VERSION=$(sed -n 's/.*gem install rubocop -v \([0-9.]*\).*/\1/p' Dockerfile)
           export CURRENT_CREATED=$(echo jq -r \".[] \| select\(.number == \\\"$CURRENT_VERSION\\\"\) \| .created_at\" rubocop.json | tee /dev/stderr | source /dev/stdin)
           test -z "$(jq -r ". | sort_by(.created_at) | .[] | select(.created_at > \"$CURRENT_CREATED\")" rubocop.json)" && exit 0 || :
           echo jq -r \". \| sort_by\(.created_at\) \| .[] \| select\(.created_at \> \\\"$CURRENT_CREATED\\\"\)\" rubocop.json \| jq -rs \".[0]\" \| sponge rubocop.json | tee /dev/stderr | source /dev/stdin
           echo RUBY_VERSIONS=$(echo yq -r \"reverse \| .[] \| select\(.date \< \\\"$(jq -r ".created_at" rubocop.json | awk -F "T" "{print \$1}")\\\"\) \| .name\" branches.yml \| sed -n \"/^$(jq -r ".ruby_version" rubocop.json | sed -e "s/[><= ]//g" | awk -F "." "{print \$1\".\"\$2}")\\\$/,\\\$p\" | tee /dev/stderr | source /dev/stdin) | tee /dev/stderr >> $GITHUB_ENV
           echo GEM_VERSION=$(jq -r ".number" rubocop.json) | tee /dev/stderr >> $GITHUB_ENV
       -
+        name: Recover shared tag
+        run: |
+          version=$(sed -n 's/.*gem install rubocop -v \([0-9.]*\).*/\1/p' Dockerfile)
+          ruby_version=$(sed -n 's/^FROM ruby:\([0-9]*\.[0-9]*\)\..*/\1/p' Dockerfile)
+          # Repair the current release even when Get version found no newer release.
+          if ! git show-ref --verify --quiet "refs/tags/${version}" &&
+            git show-ref --verify --quiet "refs/tags/${version}-ruby${ruby_version}"
+          then
+            git push origin "refs/tags/${version}-ruby${ruby_version}:refs/tags/${version}"
+          fi
+      -
         name: Bump
         run: |
           test -z "$GEM_VERSION" && exit 0 || :
+          test -n "$RUBY_VERSIONS"
           echo git config --global user.name \"github-actions[bot]\" | tee /dev/stderr | source /dev/stdin
           echo git config --global user.email \"github-actions[bot]@users.noreply.github.com\" | tee /dev/stderr | source /dev/stdin
           echo git fetch --unshallow | tee /dev/stderr | source /dev/stdin
           # Fetch the public tag list through the registry API once with a bearer token to avoid Docker Hub's anonymous API rate limit.
           RUBY_TAGS=$(
+            # Never accept a partial tag list after a failed request or validation.
+            set -eo pipefail
             token=$(curl -fsSL --retry 3 --retry-delay 5 --retry-max-time 60 'https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/ruby:pull' | jq -er '.token')
             url='https://registry-1.docker.io/v2/library/ruby/tags/list?n=1000'
             headers="${RUNNER_TEMP}/ruby-tags.headers"
@@ -61,6 +75,11 @@ jobs:
           )
           for RUBY_VERSION in $RUBY_VERSIONS
           do
+            if git show-ref --verify --quiet "refs/tags/${GEM_VERSION}-ruby${RUBY_VERSION}"
+            then
+              git checkout -B "ruby${RUBY_VERSION}" "${GEM_VERSION}-ruby${RUBY_VERSION}"
+              continue
+            fi
             if test $(git tag --sort -authordate | grep -c "ruby${RUBY_VERSION}$") -gt 0
             then
               echo git checkout -B ruby${RUBY_VERSION} $(git tag --sort -authordate | grep "ruby${RUBY_VERSION}$" | head -n1) | tee /dev/stderr | source /dev/stdin
@@ -95,6 +114,12 @@ jobs:
             echo git push origin $(git describe --tags) | tee /dev/stderr | source /dev/stdin
             sleep 300
           done
+          # Shared image tags must come from the newest Ruby variant.
+          if ! git show-ref --verify --quiet "refs/tags/${GEM_VERSION}"
+          then
+            git tag "$GEM_VERSION"
+          fi
+          git push origin "$GEM_VERSION"
           echo git checkout main | tee /dev/stderr | source /dev/stdin
           echo git merge --ff ruby$(echo $RUBY_VERSIONS | rev | cut -d\  -f1 | rev) | tee /dev/stderr | source /dev/stdin
           echo git push origin main | tee /dev/stderr | source /dev/stdin

@@ -1,6 +1,12 @@
 name: Push to Docker Hub
 
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing Git tag to publish again
+        required: true
+        type: string
   push:
     tags:
       - '*'
@@ -11,10 +17,14 @@ permissions:
 jobs:
   push:
     runs-on: ubuntu-22.04
+    env:
+      IMAGE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       -
         name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
@@ -27,10 +37,11 @@ jobs:
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/rubocop
+          flavor: |
+            latest=${{ !contains(env.IMAGE_TAG, '-ruby') }}
           tags: |
-            type=ref,event=tag,priority=900
-            type=match,pattern=ruby\d+\.\d+,priority=850
-            type=match,pattern=\d+\.\d+.\d+,priority=800
+            type=raw,value=${{ env.IMAGE_TAG }},priority=900
+            type=match,pattern=ruby\d+\.\d+,value=${{ env.IMAGE_TAG }},priority=850
       -
         name: Login
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
@@ -50,4 +61,4 @@ jobs:
         name: Pull and Test
         run: |
           echo $'# frozen_string_literal: true\nputs "Hello world!"' > hello.rb
-          docker run --rm -v ${PWD}:/app ${{ secrets.DOCKERHUB_USERNAME }}/rubocop:${{ github.ref_name }} -a
+          docker run --rm -v "${PWD}:/app" "${{ secrets.DOCKERHUB_USERNAME }}/rubocop:${IMAGE_TAG}" -a
